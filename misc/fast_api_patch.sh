@@ -1,5 +1,11 @@
 #!/bin/bash -x
 
+# Usage: Under the agent subdirectory create .env with the following contents. 
+# GOOGLE_GENAI_USE_VERTEXAI=TRUE
+# GOOGLE_CLOUD_PROJECT="[Your Porject ID]"
+# GOOGLE_CLOUD_LOCATION="[Agent Engine location such as us-central1]"
+# AGENT_ID="[Agent name such as 2571740105182019584]"
+
 python -m venv .venv
 source .venv/bin/activate
 pip install google-adk

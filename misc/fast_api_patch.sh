@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 # Usage: Under the agent subdirectory create .env with the following contents. 
 # GOOGLE_GENAI_USE_VERTEXAI=TRUE

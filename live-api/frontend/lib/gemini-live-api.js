@@ -130,7 +130,7 @@ export class GeminiLiveAPI {
     this.sendMessage(serviceSetupMessage);
 
     let tools = [];
-    if (this.googleSearch) tools = [{googleSerch: {}}];
+    if (this.googleSearch) tools = [{googleSearch: {}}];
     console.log("tools: ", tools);
     const sessionSetupMessage = {
       setup: {

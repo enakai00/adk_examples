@@ -36,6 +36,7 @@ export class GeminiLiveAPI {
 
     this.responseModalities = ["AUDIO"];
     this.systemInstructions = "";
+    this.googleSearch = false;
 
     this.apiHost = apiHost;
     this.serviceUrl = `wss://${this.apiHost}/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`;

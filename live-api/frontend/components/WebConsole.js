@@ -67,13 +67,6 @@ export default function WebConsole() {
     }
   }, [videoInput]);
 
-  useEffect(() => {
-    if (connectionStatus == "disconnected") {
-      setAudioInput(false);
-      setVideoInput(false);
-    }
-  }, [connectionStatus]);
-
   const isNotDisconnected = () => {
     return (connectionStatus !== "disconnected");
   };

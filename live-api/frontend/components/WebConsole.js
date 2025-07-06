@@ -136,11 +136,17 @@ export default function WebConsole() {
     await stopVideoInput();
     await sleep(200);
 
+    geminiLiveApi.setProjectId(PROJECT_ID);
     geminiLiveApi.responseModalities = [responseModality.toUpperCase()];
     const systemInstruction = "Output in " + outputLanguage + " unless user specifies it.";
     geminiLiveApi.systemInstructions = systemInstruction;
+    const useGoogleSearch = (googleSearch == "On") ? true : false;
+    geminiLiveApi.setGoogleSearch(useGoogleSearch);
+
+    let connectionTimeoutId;
 
     geminiLiveApi.onConnectionStarted = async () => {
+      clearTimeout(connectionTimeoutId);
       if (audioInput == true) {
         await startAudioInput();
         startAudioStream();
@@ -153,13 +159,11 @@ export default function WebConsole() {
       setButtonDisabled(false);
     };
 
-    geminiLiveApi.setProjectId(PROJECT_ID);
-    if (googleSearch == "On") {
-      geminiLiveApi.setGoogleSearch(true);
-    } else {
-      geminiLiveApi.setGoogleSearch(false);
-    }
     geminiLiveApi.connect(""); // Access token is not required.
+    connectionTimeoutId = setTimeout(() => {
+      console.log("Connection timeout");
+      disconnect();
+    }, 10000); // Timeout in 10secs.
   };
 
   const disconnect = async () => {
@@ -181,7 +185,7 @@ export default function WebConsole() {
       if (messageResponse.type[i] == "TEXT") {
         const message = messageResponse.data[i];
         console.log("Gemini said: ", message);
-        setNewModelMessage(message); // Realy the message to child components.
+        setNewModelMessage(message); // Relay the message to child components.
       }
     }
   };
@@ -256,7 +260,7 @@ export default function WebConsole() {
 
   const element = (
     <div className="flex flex-col h-screen bg-gray-100">
-      <div className="flex flex-row h-[300px]">
+      <div className="flex flex-row h-[320px]">
         <div className="w-[400px] flex-shrink-0 bg-white shadow-lg p-4 overflow-y-auto">
           <div className="text-2xl font-bold text-gray-800">
             Gemini Live API Web Console

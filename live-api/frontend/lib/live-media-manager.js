@@ -3,10 +3,8 @@ export class LiveAudioOutputManager {
         this.audioInputContext;
         this.workletNode;
         this.initialized = false;
-
         this.audioQueue = [];
         this.isPlaying = false;
-
         this.initializeAudioContext();
     }
 
@@ -74,18 +72,18 @@ export class LiveAudioInputManager {
         this.mediaRecorder;
         this.processor = false;
         this.pcmData = [];
-
         this.deviceId = null;
-
         this.interval = null;
         this.stream = null;
 
         this.onNewAudioRecordingChunk = (audioData) => {
-            console.log("New audio recording ");
+            console.log("New audio recording");
         };
     }
 
     async connectMicrophone() {
+        if (this.stream) return;
+        console.log("connectMicrophone");
         this.audioContext = new AudioContext({
             sampleRate: 16000,
         });
@@ -123,7 +121,6 @@ export class LiveAudioInputManager {
     }
 
     newAudioRecording(b64AudioData) {
-    //    console.log("newAudioRecording ");
         this.onNewAudioRecordingChunk(b64AudioData);
     }
 
@@ -152,12 +149,7 @@ export class LiveAudioInputManager {
         if (this.audioContext && this.audioContext.state !== 'closed') {
             this.audioContext.close();
         }
-//        try {
-//            this.processor.disconnect();
-//            this.audioContext.close();
-//        } catch {
-//            console.error("Error disconnecting microphone");
-//        }
+        this.stream = null;
     }
 
     async updateMicrophoneDevice(deviceId) {
@@ -167,26 +159,22 @@ export class LiveAudioInputManager {
     }
 }
 
-class LiveVideoManager {
+export class LiveVideoManager {
     constructor(previewVideoElement, previewCanvasElement) {
         this.previewVideoElement = previewVideoElement;
         this.previewCanvasElement = previewCanvasElement;
         this.ctx = this.previewCanvasElement.getContext("2d");
         this.stream = null;
         this.interval = null;
-        this.onNewFrame = (newFrame) => {
-            console.log("Default new frame trigger.");
-        };
+        this.onNewFrame = (newFrame) => {};
     }
 
     async startWebcam() {
+        if (this.stream) return;
+        console.log("startWebcam");
         try {
             const constraints = {
                 video: true,
-                // video: {
-                //     width: { max: 640 },
-                //     height: { max: 480 },
-                // },
             };
             this.stream =
                 await navigator.mediaDevices.getUserMedia(constraints);
@@ -195,19 +183,19 @@ class LiveVideoManager {
             console.error("Error accessing the webcam: ", err);
         }
 
-        setInterval(this.newFrame.bind(this), 1000);
+        this.interval = setInterval(this.newFrame.bind(this), 1000);
     }
 
     stopWebcam() {
+        if (!this.stream) return;
         clearInterval(this.interval);
         this.stopStream();
+        this.stream = null;
     }
 
     stopStream() {
         if (!this.stream) return;
-
         const tracks = this.stream.getTracks();
-
         tracks.forEach((track) => {
             track.stop();
         });
@@ -241,7 +229,6 @@ class LiveVideoManager {
     }
 
     newFrame() {
-        console.log("capturing new frame");
         const frameData = this.captureFrameB64();
         this.onNewFrame(frameData);
     }
@@ -254,9 +241,7 @@ class LiveScreenManager {
         this.ctx = this.previewCanvasElement.getContext("2d");
         this.stream = null;
         this.interval = null;
-        this.onNewFrame = (newFrame) => {
-            console.log("Default new frame trigger: ", newFrame);
-        };
+        this.onNewFrame = (newFrame) => {};
     }
 
     async startCapture() {
@@ -266,16 +251,13 @@ class LiveScreenManager {
         } catch (err) {
             console.error("Error accessing the webcam: ", err);
         }
-        setInterval(this.newFrame.bind(this), 1000);
+        this.interval = setInterval(this.newFrame.bind(this), 1000);
     }
 
     stopCapture() {
         clearInterval(this.interval);
-
         if (!this.stream) return;
-
         const tracks = this.stream.getTracks();
-
         tracks.forEach((track) => {
             track.stop();
         });
@@ -301,7 +283,6 @@ class LiveScreenManager {
     }
 
     newFrame() {
-        console.log("capturing new frame");
         const frameData = this.captureFrameB64();
         this.onNewFrame(frameData);
     }

@@ -6,6 +6,7 @@ import { GeminiLiveAPI } from "lib/gemini-live-api";
 import {
   LiveAudioOutputManager, 
   LiveAudioInputManager, 
+  LiveVideoManager,
 } from "lib/live-media-manager";
 
 export default function WebConsole() {
@@ -18,20 +19,60 @@ export default function WebConsole() {
   const [newModelMessage, setNewModelMessage] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const [responseModality, setResponseModality] = useState("Text");
-  const [audioInput, setAudioInput] = useState("Mic-off");
+  const [googleSearch, setGoogleSearch] = useState("Off");
+  const [buttonDisabled, setButtonDisabled] = useState(false);
+  const [audioInput, setAudioInput] = useState(false);
+  const [videoInput, setVideoInput] = useState(false);
   const [outputLanguage, setOutputLanguage] = useState("English");
 
+  const _liveVideoManager = useRef();
+  const _liveAudioOutputManager = useRef();
+  const _liveAudioInputManager = useRef();
+
+  const liveVideoManager = _liveVideoManager.current;
+  const liveAudioOutputManager = _liveAudioOutputManager.current;
+  const liveAudioInputManager = _liveAudioInputManager.current;
+
+  const sleep = (time) => new Promise((r) => setTimeout(r, time));
+
   useEffect(() => {
-    if (connectionStatus !== "connected") {
-      return;
-    }
-    if (audioInput == "Mic-on") {
-        startAudioInput();
-    }
-    if (audioInput == "Mic-off") {
-        stopAudioInput();
+    const videoElement = document.getElementById("video");
+    const canvasElement = document.getElementById("canvas");
+    _liveVideoManager.current = new LiveVideoManager(videoElement, canvasElement);
+    _liveAudioInputManager.current = new LiveAudioInputManager();
+    _liveAudioOutputManager.current = new LiveAudioOutputManager();
+  }, []); 
+
+  useEffect(() => {
+    if (audioInput == true) {
+          startAudioInput();
+      if (connectionStatus == "connected") {
+          startAudioStream();
+      }
+    } else {
+      stopAudioStream();
+      stopAudioInput();
     }
   }, [audioInput]);
+
+  useEffect(() => {
+    if (videoInput == true) {
+        startVideoInput();
+      if (connectionStatus == "connected") {
+          startVideoStream();
+      }
+    } else {
+        stopVideoStream();
+        stopVideoInput();
+    }
+  }, [videoInput]);
+
+  useEffect(() => {
+    if (connectionStatus == "disconnected") {
+      setAudioInput(false);
+      setVideoInput(false);
+    }
+  }, [connectionStatus]);
 
   const isNotDisconnected = () => {
     return (connectionStatus !== "disconnected");
@@ -42,53 +83,101 @@ export default function WebConsole() {
   );
   const geminiLiveApi = _geminiLiveApi.current;
 
-  const _liveAudioOutputManager = useRef(
-    new LiveAudioOutputManager()
-  );
-  const liveAudioOutputManager = _liveAudioOutputManager.current;
-
-  const _liveAudioInputManager = useRef(
-    new LiveAudioInputManager()
-  );
-  const liveAudioInputManager = _liveAudioInputManager.current;
-
-  liveAudioInputManager.onNewAudioRecordingChunk = (audioData) => {
-    console.log("sendAudioMessage");
-    geminiLiveApi.sendAudioMessage(audioData);
-  };
-
   geminiLiveApi.onErrorMessage = (message) => {
     console.log(message);
-    setConnectionStatus("disconnected");
   };
 
-  const startAudioInput = () => {
-    liveAudioInputManager.connectMicrophone();
+  const startAudioInput = async () => {
+    if (!liveAudioInputManager) return;
+    await liveAudioInputManager.connectMicrophone();
+  };
+
+  const stopAudioInput = async () => {
+    if (!liveAudioInputManager) return;
+    await liveAudioInputManager.disconnectMicrophone();
+  };
+
+  const startAudioStream = () => {
+    if (!geminiLiveApi.isConnected) return;
+    liveAudioInputManager.onNewAudioRecordingChunk = (audioData) => {
+      console.log("send audio data");
+      geminiLiveApi.sendAudioMessage(audioData);
+    };
   }
 
-  const stopAudioInput = () => {
-    liveAudioInputManager.disconnectMicrophone();
+  const stopAudioStream = () => {
+    if (!liveAudioInputManager) return;
+    liveAudioInputManager.onNewAudioRecordingChunk = () => {};
   }
 
-  const connect = () => {
-    setConnectionStatus("connecting");
+  const startVideoInput = async () => {
+    if (!liveVideoManager) return;
+    await liveVideoManager.startWebcam();
+  };
+
+  const stopVideoInput = async () => {
+    if (!liveVideoManager) return;
+    await liveVideoManager.stopWebcam();
+  };
+
+  const startVideoStream = () => {
+    if (!geminiLiveApi.isConnected) return;
+    liveVideoManager.onNewFrame = (b64Image) => {
+      console.log("send a video frame");
+      geminiLiveApi.sendImageMessage(b64Image);
+    };
+  };
+
+  const stopVideoStream = () => {
+    if (!liveVideoManager) return;
+    liveVideoManager.onNewFrame = () => {};
+  };
+
+  const connect = async () => {
+    setButtonDisabled(true);
+    // reset audio, video stream
+    await sleep(200);
+    stopAudioStream();
+    await stopAudioInput();
+    stopVideoStream();
+    await stopVideoInput();
+    await sleep(200);
+
     geminiLiveApi.responseModalities = [responseModality.toUpperCase()];
     const systemInstruction = "Output in " + outputLanguage + " unless user specifies it.";
     geminiLiveApi.systemInstructions = systemInstruction;
-    geminiLiveApi.onConnectionStarted = () => {
-      setConnectionStatus("connected");
-      if (audioInput == "Mic-on") {
-        startAudioInput();
+
+    geminiLiveApi.onConnectionStarted = async () => {
+      if (audioInput == true) {
+        await startAudioInput();
+        startAudioStream();
       }
+      if (videoInput == true) {
+        await startVideoInput();
+        startVideoStream();
+      }
+      setConnectionStatus("connected");
+      setButtonDisabled(false);
     };
+
     geminiLiveApi.setProjectId(PROJECT_ID);
+    if (googleSearch == "On") {
+      geminiLiveApi.setGoogleSearch(true);
+    } else {
+      geminiLiveApi.setGoogleSearch(false);
+    }
     geminiLiveApi.connect(""); // Access token is not required.
   };
 
-  const disconnect = () => {
+  const disconnect = async () => {
+    setButtonDisabled(true);
+    setAudioInput(false);
+    setVideoInput(false);
+    await sleep(200);
+    await geminiLiveApi.disconnect();
+    await sleep(800);
+    setButtonDisabled(false);
     setConnectionStatus("disconnected");
-    stopAudioInput();
-    geminiLiveApi.disconnect();
   };
 
   geminiLiveApi.onReceiveResponse = (messageResponse) => {
@@ -110,17 +199,17 @@ export default function WebConsole() {
   };
 
   let connectButton;
-  if (connectionStatus == "connected") {
+  if (buttonDisabled) {
+    connectButton = (
+      <button className="bg-gray-400
+                         text-white font-bold py-2 px-4 rounded">
+	    {(connectionStatus == "connected") ? "Disconnect" : "Connect"}</button>
+    );
+  } else if (connectionStatus == "connected") {
     connectButton = (
       <button className="bg-red-500 hover:bg-red-600
                          text-white font-bold py-2 px-4 rounded"
               onClick={disconnect}>Disconnect</button>
-    );
-  } else if (connectionStatus == "connecting") {
-    connectButton = (
-      <button className="bg-gray-400
-                         text-white font-bold py-2 px-4 rounded">
-	      Connect</button>
     );
   } else {
     connectButton = (
@@ -130,50 +219,108 @@ export default function WebConsole() {
     );
   }
 
-  const element = (
-    <>
-      <div className="flex flex-col h-screen">
-        <header className="bg-blue-200 p-4 shadow-md z-10 flex-shrink-0">
-          <div className="text-2xl font-bold text-gray-800">
-	    Gemini Live API Web Console
-          </div>
-	  <br/>
-	  <div>{connectButton}</div>
-	  <br/>
-          <div><ToggleSwitch id="audioInput"    
-                             labelLeft="Mic-on" labelRight="Mic-off"
-                             setValue={setAudioInput}
-	                     disabled={() => {return false}}
-	                     isRight={true} />
-          </div>
-          <br/>
-          <div><ToggleSwitch id="responseModality"    
-                             labelLeft="Text" labelRight="Audio"
-                             setValue={setResponseModality}
-	                     disabled={isNotDisconnected}
-                             isRight={false} />
-          </div>
-	  <br/>
-	  <div><DropdownMenu options={[
-		  { value: "English", label: "English" },
-		  { value: "Japanese", label: "日本語" },
-		  { value: "Korean", label: "한국어" },
-	        ]} 
-	          placeholder={outputLanguage}
-	          disabled={isNotDisconnected}
-                  onSelect={(option) => setOutputLanguage(option.value)} />
-          </div>
-        </header>
+  let micButton;
+  if (buttonDisabled) {
+    micButton = (
+      <button className="bg-gray-400
+                         text-white font-bold py-2 px-4 rounded">
+	    {(audioInput == false) ? "Mic on" : "Mic off"}</button>
+    );
+  } else if (audioInput == false) {
+    micButton = (
+      <button className="bg-green-500 hover:bg-green-600
+                         text-white font-bold py-2 px-4 rounded"
+              onClick={() => setAudioInput(true)}>Mic on</button>
+    );
+  } else {
+    micButton = (
+      <button className="bg-red-500 hover:bg-red-600
+                         text-white font-bold py-2 px-4 rounded"
+              onClick={() => setAudioInput(false)}>Mic off</button>
+    );
+  }
 
-        <div className="flex-grow overflow-y-auto p-6 bg-gray-50">
-            <TextChat sendTextMessage={sendTextMessage}
-                      newModelMessage={newModelMessage}
-                      setNewModelMessage={setNewModelMessage}
-                      connectionStatus={connectionStatus}/>
+  let cameraButton;
+  if (buttonDisabled) {
+    cameraButton = (
+      <button className="bg-gray-400
+                         text-white font-bold py-2 px-4 rounded">
+	    {(videoInput == false) ? "Camera on" : "Camera off"}</button>
+    );
+  } else if ( videoInput == false ) {
+    cameraButton = (
+      <button className="bg-green-500 hover:bg-green-600
+                         text-white font-bold py-2 px-4 rounded"
+              onClick={() => setVideoInput(true)}>Camera on</button>
+    );
+  } else {
+    cameraButton = (
+      <button className="bg-red-500 hover:bg-red-600
+                         text-white font-bold py-2 px-4 rounded"
+              onClick={() => setVideoInput(false)}>Camera off</button>
+    );
+  }
+
+  const element = (
+    <div className="flex flex-col h-screen bg-gray-100">
+      <div className="flex flex-row h-[300px]">
+        <div className="w-[400px] flex-shrink-0 bg-white shadow-lg p-4 overflow-y-auto">
+          <div className="text-2xl font-bold text-gray-800">
+            Gemini Live API Web Console
+          </div>
+	  <br/>
+	  <div className="flex flex-row space-x-4 items-center">
+            <div>{connectButton}</div>
+            <div>{micButton}</div>
+            <div>{cameraButton}</div>
+	  </div>
+	  <br/>
+	  <div className="flex flex-row space-x-4 items-center">
+            <div><ToggleSwitch id="responseModality"    
+                               labelLeft="Text" labelRight="Audio"
+                               setValue={setResponseModality}
+                               disabled={isNotDisconnected}
+                               isRight={false} />
+            </div>
+            <div><DropdownMenu options={[
+                               { value: "English", label: "English" },
+                               { value: "Japanese", label: "日本語" },
+                               { value: "Korean", label: "한국어" },
+                             ]} 
+                               placeholder={outputLanguage}
+                               disabled={isNotDisconnected}
+                               onSelect={(option) => setOutputLanguage(option.value)} />
+            </div>
+	  </div>
+	  <br/>
+	  <div className="flex flex-row space-x-4 items-center">
+            <div><ToggleSwitch id="setGoogleSearch"    
+                               labelLeft="Off" labelRight="On"
+                               setValue={setGoogleSearch}
+                               disabled={isNotDisconnected}
+                               isRight={false} />
+            </div>
+            <div className="text-1xl font-bold text-gray-800">
+	    Google Search</div>  
+	  </div>
+        </div>
+        <div className="flex-grow flex items-center justify-center p-4 bg-white">
+          <div id="video-preview">
+            <video id="video" width="320" className="bg-black"
+                   autoPlay playsInline muted></video>
+            <canvas id="canvas" hidden></canvas>
+          </div>
         </div>
       </div>
-    </>
+      <div className="flex-grow bg-gray-50 border-t p-6 overflow-y-auto">
+        <TextChat
+          sendTextMessage={sendTextMessage}
+          newModelMessage={newModelMessage}
+          setNewModelMessage={setNewModelMessage}
+          connectionStatus={connectionStatus}
+        />
+      </div>
+    </div>
   );
-
   return element;
 }

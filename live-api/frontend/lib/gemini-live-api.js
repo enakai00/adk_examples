@@ -56,6 +56,11 @@ export class GeminiLiveAPI {
     this.webSocket = null;
   }
 
+  isConnected() {
+    if (this.webSocket === null) return false;
+    return this.webSocket.readyState;
+  }
+
   setProjectId(projectId) {
     this.projectId = projectId;
     this.modelUri = `projects/${this.projectId}/locations/us-central1/publishers/google/models/${this.model}`;
@@ -64,6 +69,10 @@ export class GeminiLiveAPI {
   setAccessToken(newAccessToken) {
     console.log("setting access token: ", newAccessToken);
     this.accessToken = newAccessToken;
+  }
+
+  setGoogleSearch(googleSearch) {
+    this.googleSearch = googleSearch;
   }
 
   connect(accessToken) {
@@ -119,6 +128,9 @@ export class GeminiLiveAPI {
     };
     this.sendMessage(serviceSetupMessage);
 
+    let tools = [];
+    if (this.googleSearch) tools = [{googleSerch: {}}];
+    console.log("tools: ", tools);
     const sessionSetupMessage = {
       setup: {
         model: this.modelUri,
@@ -128,9 +140,7 @@ export class GeminiLiveAPI {
         system_instruction: {
           parts: [{ text: this.systemInstructions }],
         },
-        tools: [
-          { googleSearch: {} },
-        ],
+        tools: tools,
       },
     };
     this.sendMessage(sessionSetupMessage);

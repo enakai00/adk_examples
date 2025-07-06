@@ -72,7 +72,7 @@ export default function TextChat(props) {
   };
 
   const textStyle = {
-    width: "400px", padding: "10px", marginBottom: "20px",
+    width: "500px", padding: "10px", marginBottom: "20px",
     border: "1px solid #333333", borderRadius: "10px",
   };
   const chatBody = [];
@@ -111,7 +111,7 @@ export default function TextChat(props) {
                              focus:border-blue-500 focus:ring
                              focus:ring-blue-200 focus:ring-opacity-50
                              rounded-md outline-none shadow-sm
-                             w-[400px] h-[80px] resize-none"
+                             w-[500px] h-[80px] resize-none"
                   value={inputText}
                   onChange={(event) => setInputText(event.target.value)} />
       </div>            

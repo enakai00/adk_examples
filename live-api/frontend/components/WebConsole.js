@@ -159,11 +159,11 @@ export default function WebConsole() {
       setButtonDisabled(false);
     };
 
-    geminiLiveApi.connect(""); // Access token is not required.
     connectionTimeoutId = setTimeout(() => {
       console.log("Connection timeout");
       disconnect();
     }, 10000); // Timeout in 10secs.
+    geminiLiveApi.connect(""); // Access token is not required.
   };
 
   const disconnect = async () => {

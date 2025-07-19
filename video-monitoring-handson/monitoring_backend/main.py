@@ -2,7 +2,9 @@ import asyncio
 import copy
 import json
 import logging
+import os
 import uuid
+from dotenv import load_dotenv
 
 import google.auth
 from google import genai
@@ -16,8 +18,11 @@ from fastapi.websockets import WebSocketState
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+load_dotenv()
+
 _, PROJECT_ID = google.auth.default()
 LOCATION = 'us-central1'
+LANGUAGE = os.environ.get('LANGUAGE', 'English')
 
 
 class MonitoringBackend:
@@ -75,7 +80,7 @@ You are given a series of images from a security camera that contains one image 
 - "status" is "unusual" if the scene contains a suspicious situation suggesting criminal activities.
 
 [output]
-- Output in English.
+- Output in {LANGUAGE}.
 '''
 
         response_schema = {

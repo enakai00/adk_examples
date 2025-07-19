@@ -34,13 +34,6 @@ class MonitoringBackend:
         self.analysis_interval = 15 # Analyize every 15 secs
 
 
-    async def send_message_to_client(self, message):
-        try:
-            await self.client_ws.send_text(json.dumps(message))
-        except Exception as e:
-            logger.info(f'failed to send message: {e}')
-
-
     def cancel_analysis_tasks(self):
         for task_id in self.analysis_tasks.keys():
             self.analysis_tasks[task_id].cancel()
@@ -119,7 +112,7 @@ You are given a series of images from a security camera that contains one image 
                 None, self._analyze_images, images
             )
             logger.info(f'analysis result: {result}')
-            await self.send_message_to_client(result)
+            await self.client_ws.send_text(json.dumps(result))
         except Exception as e:
             logger.error(f'failed to analyze images: {e}')
 

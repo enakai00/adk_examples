@@ -34,11 +34,6 @@ class MonitoringBackend:
         self.analysis_interval = 15 # Analyize every 15 secs
 
 
-    def cancel_analysis_tasks(self):
-        for task_id in self.analysis_tasks.keys():
-            self.analysis_tasks[task_id].cancel()
-
-
     def generate_response(self, system_instruction, contents, response_schema,
                           model='gemini-2.5-flash'):
         client = genai.Client(vertexai=True,

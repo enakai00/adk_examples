@@ -171,32 +171,37 @@ class VoicetalkBackend:
 
 
     async def run(self):
+        logger.info('start conversation')
         self.live_events, self.live_request_queue = await self.create_runner() 
 
-        logger.info('start1') 
         text = f'Hello. Please talk in {LANGUAGE}.'
         content = Content(role='user', parts=[Part(text=text)])
         self.live_request_queue.send_content(content=content)
-        logger.info('start2') 
 
-        # agent to voice client
-        agent_to_client_task = asyncio.create_task(
-            self.agent_to_client_messaging()
-        )
-        # voice client to agent
-        client_to_agent_task = asyncio.create_task(
-            self.client_to_agent_messaging()
-        )
-        tasks = [
-            agent_to_client_task, client_to_agent_task,
-        ]
-        done, pending = await asyncio.wait(
-            tasks, return_when=asyncio.FIRST_EXCEPTION
-        )
+        try:
+            # agent to voice client
+            agent_to_client_task = asyncio.create_task(
+                self.agent_to_client_messaging()
+            )
+            # voice client to agent
+            client_to_agent_task = asyncio.create_task(
+                self.client_to_agent_messaging()
+            )
+            tasks = [
+                agent_to_client_task, client_to_agent_task,
+            ]
+            done, pending = await asyncio.wait(
+                tasks, return_when=asyncio.FIRST_COMPLETED
+            )
 
-#        live_request_queue.close()
-#        for task in tasks:
-#            task.cancel()
+        except Exception as e:
+            logger.info(f'exception: {e}')
+
+        finally:
+            for task in tasks:
+                task.cancel()
+
+        logger.info('end conversation')
 
 
 app = FastAPI()

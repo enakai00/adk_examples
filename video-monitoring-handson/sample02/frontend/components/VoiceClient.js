@@ -3,17 +3,26 @@ import { VoicecallBackendAPI } from "lib/voicecall-backend";
 import {
   LiveAudioInputManager,
   LiveAudioOutputManager
-} from "lib/live-media-manager";
+} from "lib/live-audio-manager";
 
 export default function VoiceClient() {
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_VOICECALL_BACKEND_URL;
-
+  // setup variables.
   const sleep = (time) => new Promise((r) => setTimeout(r, time));
-
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const [micStatus, setMicStatus] = useState("off");
   const [buttonDisabled, setButtonDisabled] = useState(false);
+
+
+  // setup voicecall backend API library.
+  const _voicecallApi = useRef(
+    new VoicecallBackendAPI(BACKEND_URL)
+  );
+  const voicecallApi = _voicecallApi.current;
+
+
+  // setup audio input / output library.
   const _liveAudioOutputManager = useRef();
   const _liveAudioInputManager = useRef();
   const liveAudioOutputManager = _liveAudioOutputManager.current;
@@ -24,6 +33,8 @@ export default function VoiceClient() {
     _liveAudioOutputManager.current = new LiveAudioOutputManager();
   }, []); 
 
+
+  // start and stop audio input / output
   useEffect(() => {
     if (connectionStatus == "connected") {
       startAudioInput();
@@ -32,7 +43,6 @@ export default function VoiceClient() {
       stopAudioInput();
     }
   }, [connectionStatus]);
-
 
   useEffect(() => {
     if (micStatus == "on") {
@@ -45,12 +55,6 @@ export default function VoiceClient() {
       _stopAudioStream();
     }
   }, [micStatus]);
-
-
-  const _voicecallApi = useRef(
-    new VoicecallBackendAPI(BACKEND_URL)
-  );
-  const voicecallApi = _voicecallApi.current;
 
   const startAudioInput = async () => {
     if (!liveAudioInputManager) return;
@@ -76,6 +80,7 @@ export default function VoiceClient() {
   }
 
 
+  // connect and disconnect to voicecall backend
   const connect = async () => {
     setButtonDisabled(true);
     voicecallApi.connect();
@@ -100,6 +105,7 @@ export default function VoiceClient() {
   };
 
 
+  // receive audio message from voicecall backend.
   voicecallApi.onReceiveResponse = (messageResponse) => {
     if (messageResponse.type == "audio") {
       console.log("auido data received.")
@@ -109,6 +115,7 @@ export default function VoiceClient() {
   };
 
 
+  // UI components
   let connectButton;
   if (buttonDisabled) {
     connectButton = (
@@ -129,7 +136,6 @@ export default function VoiceClient() {
               onClick={connect}>Connect Backend</button>
     );
   }
-
 
   let micButton;
   if (micStatus == "on") {

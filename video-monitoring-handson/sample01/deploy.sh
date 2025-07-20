@@ -6,7 +6,7 @@ REGION=us-central1
 REPO_NAME=cloud-run-source-deploy
 REPO=${REGION}-docker.pkg.dev/$PROJECT_ID/$REPO_NAME
 
-DEPLOY_MONITORING_BACKEND=true
+DEPLOY_BACKEND=true
 DEPLOY_FRONTEND=true
 
 
@@ -43,7 +43,7 @@ if [[ $rc != 0 ]]; then
 fi  
 
 
-if [[ $DEPLOY_MONITORING_BACKEND ]]; then
+if [[ $DEPLOY_BACKEND ]]; then
   echo ""
   echo "## Deploying backend..."
 
@@ -61,14 +61,14 @@ if [[ $DEPLOY_MONITORING_BACKEND ]]; then
       --role roles/aiplatform.user \
       --member=serviceAccount:$SERVICE_ACCOUNT
 
-    echo "Wait 30 seconds for ACLs to be propagated."
-    sleep 30
+    echo "Wait 60 seconds for ACLs to be propagated."
+    sleep 60
   fi
 fi
   
-if $DEPLOY_MONITORING_BACKEND; then
-  pushd monitoring_backend
-  gcloud run deploy video-monitoring-backend --source . \
+if $DEPLOY_BACKEND; then
+  pushd backend
+  gcloud run deploy sample01-backend --source . \
     --region $REGION \
     --allow-unauthenticated \
     --service-account $SERVICE_ACCOUNT \
@@ -76,8 +76,8 @@ if $DEPLOY_MONITORING_BACKEND; then
   popd
 fi
 
-MONITORING_BACKEND_URL=$(gcloud run services list --format json | \
-  jq .[].status.url | grep -E "video-monitoring-backend.*\.run\.app" | sed s/\"//g)
+BACKEND_URL=$(gcloud run services list --format json | \
+  jq .[].status.url | grep -E "sample01-backend.*\.run\.app" | sed s/\"//g)
 
 
 if $DEPLOY_FRONTEND; then
@@ -96,8 +96,8 @@ if $DEPLOY_FRONTEND; then
   fi
 
   pushd frontend
-  echo "NEXT_PUBLIC_MONITORING_BACKEND_URL=\"${MONITORING_BACKEND_URL//https/wss}/ws\"" > .env.local
-  gcloud run deploy video-monitoring-app --source . \
+  echo "NEXT_PUBLIC_BACKEND_URL=\"${BACKEND_URL//https/wss}/ws\"" > .env.local
+  gcloud run deploy sample01-app --source . \
     --region $REGION \
     --allow-unauthenticated \
     --service-account $SERVICE_ACCOUNT
@@ -105,7 +105,7 @@ if $DEPLOY_FRONTEND; then
 fi
 
 APP_URL=$(gcloud run services list --format json | \
-  jq .[].status.url | grep -E "video-monitoring-app-.*\.run\.app" | sed s/\"//g)
+  jq .[].status.url | grep -E "sample01-app-.*\.run\.app" | sed s/\"//g)
 
 echo ""
 echo "Done."

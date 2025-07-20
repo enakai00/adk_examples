@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { MonitoringBackendAPI } from "lib/monitoring-backend";
-import { LiveVideoManager } from "lib/live-media-manager";
+import { LiveVideoManager } from "lib/live-video-manager";
 import { markdownComponents } from "lib/constants";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -9,17 +9,19 @@ export default function WebConsole() {
 
   // setup variables
   const sleep = (time) => new Promise((r) => setTimeout(r, time));
-  const MONITORING_BACKEND_URL = process.env.NEXT_PUBLIC_MONITORING_BACKEND_URL;
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const monitoringTextInit = "## Monitoring Message"
   const [monitoringText, setMonitoringText] = useState(monitoringTextInit);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const [buttonDisabled, setButtonDisabled] = useState(false);
 
+
   // setup monitoring backend API library.
   const _monitoringApi = useRef(
-    new MonitoringBackendAPI(MONITORING_BACKEND_URL)
+    new MonitoringBackendAPI(BACKEND_URL)
   );
   const monitoringApi = _monitoringApi.current;
+
 
   // setup video input library.
   const _liveVideoManager = useRef();
@@ -65,6 +67,7 @@ export default function WebConsole() {
     if (!liveVideoManager) return;
     liveVideoManager.onNewFrame = () => {};
   };
+
 
   // connect and disconnect to monitoring backend.
   const connect = async () => {

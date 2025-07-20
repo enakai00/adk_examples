@@ -100,7 +100,7 @@ if $DEPLOY_FRONTEND; then
   gcloud run deploy video-monitoring-app --source . \
     --region $REGION \
     --allow-unauthenticated \
-    --service-account $SERVICE_ACCOUNT \
+    --service-account $SERVICE_ACCOUNT
   popd
 fi
 

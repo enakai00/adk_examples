@@ -61,8 +61,8 @@ if [[ $DEPLOY_MONITORING_BACKEND ]]; then
       --role roles/aiplatform.user \
       --member=serviceAccount:$SERVICE_ACCOUNT
 
-    echo "Wait 60 seconds for ACLs to be propagated."
-    sleep 60
+    echo "Wait 30 seconds for ACLs to be propagated."
+    sleep 30
   fi
 fi
   
